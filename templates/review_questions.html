@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Review: {{ quiz.name }} - CyberMjanja{% endblock %}
+
+{% block head_extra %}
+    <!-- Link to the specific stylesheet for this review page -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/review_styles.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<!-- Page Header Start -->
+<div class="container-fluid page-header py-5">
+    <div class="container text-center py-5">
+        <h1 class="display-2 text-white mb-4 animated slideInDown">Quiz Review</h1>
+        <nav aria-label="breadcrumb animated slideInDown">
+            <ol class="breadcrumb justify-content-center mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="#">Results</a></li>
+                <li class="breadcrumb-item text-secondary" aria-current="page">{{ quiz.name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+<!-- Page Header End -->
+
+<div class="container-fluid py-5" style="background-color: #f7f9fa;">
+    <div class="review-container">
+        <!-- Header/Summary Section -->
+        <header class="quiz-summary">
+            <div class="summary-progress">
+                <div class="progress-circle" style="--progress: {{ score_percent | int }}; --color: var(--bs-secondary, #45CDC6);">
+                    <div class="inner-circle">{{ score_percent | int }}%</div>
+                </div>
+            </div>
+            <div class="summary-details">
+                <h1>{{ quiz.name }}</h1>
+                <p class="score-text"><strong>{{ score_percent | round(2) }}%</strong> correct ({{ result.score }}/{{ result.total_questions }})</p>
+                <p class="date-text">Completed on: {{ result.timestamp.split(' ')[0] }}</p>
+            </div>
+        </header>
+
+        <!-- Legend and Filter Buttons -->
+        <div class="legend">
+            <span><span class="color-box correct"></span> Correct</span>
+            <span><span class="color-box incorrect"></span> Incorrect</span>
+            <span><span class="color-box bookmarked"></span> Bookmarked</span>
+        </div>
+
+        <div class="filter-controls">
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">All questions ({{ result.total_questions }})</button>
+                <button class="filter-btn" data-filter="correct">Correct ({{ correct_count }})</button>
+                <button class="filter-btn" data-filter="incorrect">Incorrect ({{ incorrect_count }})</button>
+                <button class="filter-btn" data-filter="bookmarked">Bookmarked ({{ bookmarked_count }})</button>
+            </div>
+            <a href="#" id="collapse-toggle" class="collapse-link">Collapse all</a>
+        </div>
+
+        <!-- Questions Review Section -->
+        <main class="questions-list">
+            {% for item in review_data %}
+            {% set question = item.question %}
+            {% set answers = item.answers %}
+            {% set user_answer_id = item.user_answer_id %}
+            {% set correct_answer_id = item.correct_answer_id %}
+
+            {% set card_class = 'correct' if user_answer_id == correct_answer_id else 'incorrect' %}
+
+            <div class="question-card" data-status="{{ card_class }}" data-bookmarked="{{ 'true' if item.is_bookmarked else 'false' }}">
+                <div class="question-header">
+                    <span>
+                        Question {{ loop.index }}
+                        {% if item.is_bookmarked %}
+                            <i class="fas fa-bookmark bookmarked-icon" title="Bookmarked"></i>
+                        {% endif %}
+                    </span>
+                    <span class="status">{{ card_class|capitalize }}</span>
+                </div>
+                <div class="question-body">
+                    <p class="question-text">{{ question.question_text }}</p>
+                    <div class="options">
+                        {% for answer in answers %}
+                        {% set is_user_answer = (user_answer_id == answer.id) %}
+                        {% set is_correct_answer = (correct_answer_id == answer.id) %}
+                        
+                        <div class="option 
+                            {% if is_user_answer and not is_correct_answer %}user-incorrect{% endif %} 
+                            {% if is_correct_answer %}correct-answer{% endif %}
+                            {% if is_user_answer and is_correct_answer %}user-correct{% endif %}
+                        ">
+                            {% if is_user_answer and not is_correct_answer %}
+                                <i class="fas fa-times-circle"></i>
+                            {% elif is_correct_answer %}
+                                <i class="fas fa-check-circle"></i>
+                            {% else %}
+                                <i class="far fa-circle"></i>
+                            {% endif %}
+                            
+                            {{ answer.answer_text }}
+                            
+                            {% if is_user_answer %}
+                                <span class="your-answer">Your Answer</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="explanation">
+                        <h4><i class="fas fa-info-circle"></i> Explanation</h4>
+                        <p>{{ question.explanation }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    <!-- This line loads the JavaScript file that makes the filters work -->
+    <script src="{{ url_for('static', filename='js/review_filters.js') }}"></script>
+{% endblock %}

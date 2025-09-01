@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Update Profile - CyberMjanja{% endblock %}
+
+{% block content %}
+<div class="container-fluid page-header py-5">
+    <div class="container text-center py-5">
+        <h1 class="display-2 text-white mb-4 animated slideInDown">My Profile</h1>
+        <nav aria-label="breadcrumb animated slideInDown">
+            <ol class="breadcrumb justify-content-center mb-0">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item text-secondary" aria-current="page">Update Profile</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="profile-card">
+                <h2 class="profile-header">Update Your Information</h2>
+                <p class="text-muted mb-4">Keep your profile details current.</p>
+
+                <form method="POST">
+                    <!-- Full Name -->
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="full_name" name="full_name" value="{{ user_data.full_name or '' }}">
+                    </div>
+
+                    <!-- Country -->
+                    <div class="mb-3">
+                        <label for="country" class="form-label">Country</label>
+                        <input type="text" class="form-control" id="country" name="country" value="{{ user_data.country or '' }}">
+                    </div>
+
+                    <!-- Organization -->
+                    <div class="mb-3">
+                        <label for="organization" class="form-label">Organization / Company</label>
+                        <input type="text" class="form-control" id="organization" name="organization" value="{{ user_data.organization or '' }}">
+                    </div>
+
+                    <!-- Job Title -->
+                    <div class="mb-3">
+                        <label for="job_title" class="form-label">Job Title</label>
+                        <input type="text" class="form-control" id="job_title" name="job_title" value="{{ user_data.job_title or '' }}">
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

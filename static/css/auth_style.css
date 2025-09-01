@@ -1,0 +1,195 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Saira:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+/* General Body Styling */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f0f2f5; /* Light grey background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+/* Authentication Container */
+.auth-container {
+    background-color: #ffffff;
+    padding: 2.5rem;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Wave SVG Background */
+.auth-container::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 120px; /* Wave height */
+    /* This purple wave uses your site's secondary color */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3e%3cpath fill='%2326d48c' fill-opacity='0.15' d='M0,224L48,208C96,192,192,160,288,165.3C384,171,480,213,576,240C672,267,768,277,864,256C960,235,1056,181,1152,154.7C1248,128,1344,128,1392,128L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3e%3c/path%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-size: cover;
+    z-index: 0;
+}
+
+/* Bring form content above the pseudo-element */
+.auth-form {
+    position: relative;
+    z-index: 1;
+}
+
+/* Header Styling */
+.auth-header h1 {
+    font-family: 'Saira', sans-serif;
+    color: #1842b6; /* Primary color from your site */
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.auth-header p {
+    color: #6c757d;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+}
+
+/* Input Group Styling */
+.input-group {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.input-group .form-control {
+    background-color: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 30px;
+    padding: 0.75rem 1rem 0.75rem 2.75rem; /* Space for icon */
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.input-group .form-control:focus {
+    background-color: #ffffff;
+    border-color: #1842b6;
+    box-shadow: 0 0 0 3px rgba(24, 66, 182, 0.1);
+}
+
+.input-group .input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 1.1rem;
+    transition: color 0.3s ease;
+}
+
+.input-group .form-control:focus + .input-icon {
+    color: #1842b6;
+}
+
+/* Button Styling */
+.btn-auth {
+    background-color: #1842b6; /* Primary button color */
+    color: #ffffff;
+    border: none;
+    border-radius: 30px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-auth:hover {
+    background-color: #133592; /* Darker shade on hover */
+    transform: translateY(-2px);
+}
+
+/* Footer Link */
+.auth-footer {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.auth-footer a {
+    color: #1842b6;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+
+/* --- Password Strength Indicator --- */
+#password-strength {
+    display: none; /* Hidden by default */
+    padding: 1rem;
+    margin-top: -1rem;
+    margin-bottom: 1.5rem;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    text-align: left;
+}
+
+#password-strength ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#password-strength li {
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    transition: color 0.3s ease;
+}
+
+#password-strength li:last-child {
+    margin-bottom: 0;
+}
+
+#password-strength li::before {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    margin-right: 0.75rem;
+    width: 20px;
+    display: inline-block;
+    text-align: center;
+}
+
+/* Invalid State Styling */
+#password-strength li.invalid {
+    color: #ef4444; /* Red for invalid */
+}
+
+#password-strength li.invalid::before {
+    content: '\f00d'; /* Font Awesome 'times' icon */
+}
+
+/* Valid State Styling */
+#password-strength li.valid {
+    color: #22c55e; /* Green for valid */
+}
+
+#password-strength li.valid::before {
+    content: '\f00c'; /* Font Awesome 'check' icon */
+}
+
+/* Disabled button state */
+.btn-auth:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+}

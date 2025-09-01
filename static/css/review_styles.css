@@ -1,0 +1,213 @@
+/* ========================================================== */
+/*        COMPLETE STYLESHEET FOR QUIZ REVIEW PAGE            */
+/* ========================================================== */
+
+/* Main container for the review content. This is the primary layout fix. */
+.review-container {
+    max-width: 1140px; /* Matches Bootstrap's standard container width for large screens */
+    margin-left: auto;
+    margin-right: auto;
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6; /* A light Bootstrap border color */
+}
+
+/* --- Summary Section --- */
+.quiz-summary {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+    gap: 25px;
+}
+
+.summary-progress .progress-circle {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    /* Using your site's secondary color for the progress bar */
+    background: conic-gradient(var(--color, #45CDC6) calc(var(--progress, 0) * 1%), #f0f0f0 0);
+}
+
+.summary-progress .inner-circle {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 2em;
+    font-weight: 700;
+    color: #333;
+}
+
+.summary-details h1 {
+    margin: 0 0 8px 0;
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.summary-details .score-text {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin: 0;
+}
+
+.summary-details .date-text {
+    color: #6c757d; /* Bootstrap's text-muted color */
+    margin: 5px 0 0;
+}
+
+/* --- Legend --- */
+.legend {
+    padding: 15px 0;
+    display: flex;
+    gap: 20px;
+    color: #555;
+}
+
+.color-box {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+.color-box.correct { background-color: #198754; } /* Bootstrap success green */
+.color-box.incorrect { background-color: #dc3545; } /* Bootstrap danger red */
+.color-box.bookmarked { background-color: #ffc107; } /* Bootstrap warning yellow */
+
+
+/* --- Filter & Controls --- */
+.filter-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+}
+
+.filters .filter-btn {
+    background: #f8f9fa; /* A light Bootstrap gray */
+    border: 1px solid #dee2e6;
+    padding: 8px 16px;
+    margin-right: 8px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+.filters .filter-btn.active {
+    background-color: var(--bs-primary, #0d6efd); /* Your site's primary blue */
+    color: white;
+    border-color: var(--bs-primary, #0d6efd);
+}
+
+.collapse-link {
+    color: var(--bs-primary, #0d6efd); /* Your site's primary blue */
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/* --- Question Card --- */
+.question-card {
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #f8f9fa;
+}
+
+.question-header span:first-child {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.question-header .status {
+    font-weight: bold;
+}
+
+/* Style for the bookmark icon inside the question header */
+.question-header .bookmarked-icon {
+    color: #ffc107; /* Bootstrap warning yellow */
+    margin-left: 10px;
+    font-size: 0.9em;
+}
+
+
+.question-card.correct { border-left: 5px solid #198754; }
+.question-card.correct .question-header .status { color: #198754; }
+
+.question-card.incorrect { border-left: 5px solid #dc3545; }
+.question-card.incorrect .question-header .status { color: #dc3545; }
+
+.question-body {
+    padding: 20px;
+}
+
+.question-text {
+    font-size: 1.1em;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+/* --- Options Styling --- */
+.options .option {
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.your-answer {
+    font-size: 0.9em;
+    font-style: italic;
+    color: #555;
+    margin-left: auto;
+}
+
+/* Specific states for user answers */
+.option.user-correct {
+    background-color: #d1e7dd; /* Bootstrap success light green */
+    border-color: #198754;
+}
+.option.user-incorrect {
+    background-color: #f8d7da; /* Bootstrap danger light red */
+    border-color: #dc3545;
+}
+.option.correct-answer {
+    background-color: #d1e7dd;
+    border: 2px solid #198754;
+}
+
+/* --- Explanation Section --- */
+.explanation {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 20px;
+    border: 1px solid #dee2e6;
+}
+
+.explanation h4 {
+    margin-top: 0;
+    font-weight: bold;
+}
+.explanation h4 i {
+    color: var(--bs-primary, #0d6efd);
+    margin-right: 8px;
+}

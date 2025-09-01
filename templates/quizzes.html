@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Quizzes - CyberMjanja{% endblock %}
+
+{% block content %}
+<!-- Page Header Start -->
+<div class="container-fluid page-header py-5">
+    <div class="container text-center py-5">
+        <h1 class="display-2 text-white mb-4 animated slideInDown">Quizzes</h1>
+    </div>
+</div>
+<!-- Page Header End -->
+
+<!-- Quizzes Start -->
+<div class="container-fluid project py-5 mb-5">
+    <div class="container">
+        <div class="text-center mx-auto pb-5 wow fadeIn" data-wow-delay=".3s" style="max-width: 600px;">
+            <h5 class="text-primary">Our Quizzes</h5>
+            <h1>Cybersecurity Awareness Quizzes</h1>
+        </div>
+        <div class="row g-5">
+            {% for quiz in quizzes %}
+            <div class="col-md-6 col-lg-4 wow fadeIn" data-wow-delay=".3s">
+                <div class="project-item">
+                    <div class="quiz-text-content">
+                        <h4>{{ quiz.name }}</h4>
+                        <p class="m-0">{{ quiz.description }}</p>
+                    </div>
+                    <!-- START OF FIX: The link now points to 'start_quiz' and uses 'slug' -->
+                    <a href="{{ url_for('start_quiz', slug=quiz.slug) }}" class="start-quiz-button">Start</a>
+                    <!-- END OF FIX -->
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12 text-center">
+                <p>No quizzes are available at the moment. Please check back later.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+<!-- Quizzes End -->
+
+{% endblock %}

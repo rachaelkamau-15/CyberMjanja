@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}My Dashboard - CyberMjanja{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <nav class="navigation">
+            <ul>
+                <li class="active"><a href="{{ url_for('dashboard') }}"><i class="fas fa-th-large"></i> My Dashboard</a></li>
+                <li><a href="{{ url_for('update_profile') }}"><i class="fas fa-user-circle"></i> My Profile</a></li>
+                <li><a href="{{ url_for('quizzes') }}"><i class="fas fa-book"></i> Quizzes</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- ============================================= -->
+        <!--   THIS IS THE FIX FOR THE DASHBOARD DISPLAY   -->
+        <!-- ============================================= -->
+        <h1 class="welcome-header">Welcome, {{ user.full_name or user.username }}!</h1>
+        
+        <!-- Top Summary Cards -->
+        <section class="summary-cards">
+            <div class="card card-completed">
+                <div class="card-icon-wrapper"><i class="fas fa-check"></i></div>
+                <div class="card-content">
+                    <p class="card-number">{{ completed_quizzes_count }}</p>
+                    <p class="card-title">Completed Quizzes</p>
+                </div>
+            </div>
+            <div class="card card-in-progress">
+                <div class="card-icon-wrapper"><i class="fas fa-lightbulb"></i></div>
+                <div class="card-content">
+                    <p class="card-number">{{ in_progress_count }}</p>
+                    <p class="card-title">In Progress Quizzes</p>
+                </div>
+            </div>
+            <div class="card card-upcoming">
+                <div class="card-icon-wrapper"><i class="fas fa-bookmark"></i></div>
+                <div class="card-content">
+                    <p class="card-number">{{ not_attempted_count }}</p>
+                    <p class="card-title">Not Attempted Quizzes</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Progress and Assessment Section -->
+        <section class="progress-section">
+            <div class="widget assessment-widget">
+                <div class="progress-circle" style="--progress: {{ overall_progress_percentage | int }}; --color: #28a745;">
+                    <div class="inner-circle">{{ overall_progress_percentage | int }}%</div>
+                </div>
+                <div class="widget-content">
+                    <h3 class="assessment-title">Overall Completion</h3>
+                    <p>You've completed <strong>{{ completed_quizzes_count }}</strong> of <strong>{{ total_quizzes_count }}</strong> total quizzes.</p>
+                </div>
+            </div>
+            <div class="widget my-progress-widget">
+                <div class="progress-circle-large" style="--progress: {{ average_score_percentage | int }}; --color: #007bff;">
+                    <div class="inner-circle-large">{{ average_score_percentage | int }}%</div>
+                </div>
+                <h3 class="my-progress-title">My Progress <small>(Avg. Score)</small></h3>
+            </div>
+        </section>
+
+        <!-- Recent Activity Table -->
+        <section class="recent-activity">
+            <h2>Recent Activity</h2>
+            <div class="table-responsive">
+                <table class="activity-table">
+                    <thead>
+                        <tr>
+                            <th>Quiz Name</th>
+                            <th>Score</th>
+                            <th>Date Completed</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results %}
+                        <tr>
+                            <td>{{ result.name }}</td>
+                            <td>{{ result.score }} / {{ result.total_questions }}</td>
+                            <td>{{ result.timestamp.split(' ')[0] }}</td>
+                            <td>
+                                <a href="{{ url_for('review_quiz_result', result_id=result.id) }}" class="action-link">Review</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center">You haven't completed any quizzes yet. <a href="{{ url_for('quizzes') }}">Start one now!</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}
