@@ -1,0 +1,201 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Booking Management - CyberMjanja Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Training Bookings</h2>
+    <div class="btn-group">
+        <a href="{{ url_for('admin_bookings', status='All') }}" class="btn btn-outline-primary {% if status_filter == 'All' %}active{% endif %}">All</a>
+        <a href="{{ url_for('admin_bookings', status='Pending') }}" class="btn btn-outline-warning {% if status_filter == 'Pending' %}active{% endif %}">Pending</a>
+        <a href="{{ url_for('admin_bookings', status='Confirmed') }}" class="btn btn-outline-success {% if status_filter == 'Confirmed' %}active{% endif %}">Confirmed</a>
+        <a href="{{ url_for('admin_bookings', status='Completed') }}" class="btn btn-outline-info {% if status_filter == 'Completed' %}active{% endif %}">Completed</a>
+        <a href="{{ url_for('admin_bookings', status='Cancelled') }}" class="btn btn-outline-danger {% if status_filter == 'Cancelled' %}active{% endif %}">Cancelled</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">All Bookings</h5>
+        <span class="badge bg-secondary">{{ bookings|length }} bookings</span>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Organization</th>
+                        <th>Contact</th>
+                        <th>Participants</th>
+                        <th>Preferred Date</th>
+                        <th>Topic</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in bookings %}
+                    <tr>
+                        <td>{{ booking.id }}</td>
+                        <td>{{ booking.organization_name }}</td>
+                        <td>
+                            {{ booking.contact_person }}<br>
+                            <small>{{ booking.email }}</small><br>
+                            <small>{{ booking.phone }}</small>
+                        </td>
+                        <td>{{ booking.participants_count or 'N/A' }}</td>
+                        <td>{{ booking.preferred_date or 'N/A' }}</td>
+                        <td>{{ booking.training_topic or 'N/A' }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if booking.status == 'Pending' %}bg-warning
+                                {% elif booking.status == 'Confirmed' %}bg-success
+                                {% elif booking.status == 'Completed' %}bg-info
+                                {% elif booking.status == 'Cancelled' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ booking.status }}
+                            </span>
+                        </td>
+                        <td>{{ booking.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-info" title="View Details" data-bs-toggle="modal" data-bs-target="#bookingModal{{ booking.id }}">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                
+                                <div class="dropdown">
+                                    <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Change Status">
+                                        <i class="fas fa-cog"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <form method="POST" action="{{ url_for('admin_update_booking_status', booking_id=booking.id) }}">
+                                                <input type="hidden" name="status" value="Pending">
+                                                <button type="submit" class="dropdown-item">Mark as Pending</button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form method="POST" action="{{ url_for('admin_update_booking_status', booking_id=booking.id) }}">
+                                                <input type="hidden" name="status" value="Confirmed">
+                                                <button type="submit" class="dropdown-item">Mark as Confirmed</button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form method="POST" action="{{ url_for('admin_update_booking_status', booking_id=booking.id) }}">
+                                                <input type="hidden" name="status" value="Completed">
+                                                <button type="submit" class="dropdown-item">Mark as Completed</button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form method="POST" action="{{ url_for('admin_update_booking_status', booking_id=booking.id) }}">
+                                                <input type="hidden" name="status" value="Cancelled">
+                                                <button type="submit" class="dropdown-item">Mark as Cancelled</button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                                
+                                <form method="POST" action="{{ url_for('admin_delete_booking', booking_id=booking.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-danger" title="Delete Booking" 
+                                            onclick="return confirm('Are you sure you want to delete this booking?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Booking Detail Modal -->
+                    <div class="modal fade" id="bookingModal{{ booking.id }}" tabindex="-1" aria-labelledby="bookingModalLabel{{ booking.id }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="bookingModalLabel{{ booking.id }}">Booking Details #{{ booking.id }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <strong>Organization:</strong><br>
+                                            {{ booking.organization_name }}
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Status:</strong><br>
+                                            <span class="badge 
+                                                {% if booking.status == 'Pending' %}bg-warning
+                                                {% elif booking.status == 'Confirmed' %}bg-success
+                                                {% elif booking.status == 'Completed' %}bg-info
+                                                {% elif booking.status == 'Cancelled' %}bg-danger
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ booking.status }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <strong>Contact Person:</strong><br>
+                                            {{ booking.contact_person }}
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Participants:</strong><br>
+                                            {{ booking.participants_count or 'N/A' }}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <strong>Email:</strong><br>
+                                            {{ booking.email }}
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Phone:</strong><br>
+                                            {{ booking.phone }}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <strong>Preferred Date:</strong><br>
+                                            {{ booking.preferred_date or 'N/A' }}
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>Training Topic:</strong><br>
+                                            {{ booking.training_topic or 'N/A' }}
+                                        </div>
+                                    </div>
+                                    
+                                    {% if booking.message %}
+                                    <div class="mb-3">
+                                        <strong>Message:</strong><br>
+                                        {{ booking.message }}
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="mb-3">
+                                        <strong>Submitted:</strong><br>
+                                        {{ booking.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </div>
+                                    
+                                    {% if booking.user_id %}
+                                    <div class="mb-3">
+                                        <strong>Submitted by user:</strong><br>
+                                        {{ booking.username }} (ID: {{ booking.user_id }})
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

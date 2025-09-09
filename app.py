@@ -1,11 +1,17 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, g
-import sqlite3
+import sqlite3, os
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_dance.contrib.google import make_google_blueprint, google
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from datetime import datetime
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = 'your_super_secret_key_change_this'
 DATABASE = 'database.db'
 
+# ---------------- Database ----------------
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
@@ -26,6 +32,123 @@ def load_logged_in_user():
 @app.context_processor
 def inject_user():
     return dict(user=getattr(g, 'user', None))
+
+# ---------------- Google OAuth ----------------
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'  # Allow HTTP for dev
+google_bp = make_google_blueprint(
+    client_id="44670871253-rro5dfqqb5l4gqmva91tdii25mtt1qgg.apps.googleusercontent.com",
+    client_secret="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",
+    scope=[
+        "openid",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile"
+    ],
+    redirect_to="google_login"
+)
+app.register_blueprint(google_bp, url_prefix="/login")
+
+@app.route("/google_login")
+def google_login():
+    # If user is not authorized with Google, send them to login
+    if not google.authorized:
+        return redirect(url_for("google.login"))
+
+    # Get user info from Google
+    resp = google.get("/oauth2/v2/userinfo")
+    if not resp.ok:
+        flash("Google login failed.", "danger")
+        return redirect(url_for("login"))
+
+    info = resp.json()
+    email = info["email"]
+    full_name = info.get("name", "")
+    username = email.split("@")[0]  # fallback if no name
+
+    # Check if user already exists in DB
+    conn = get_db_connection()
+    user = conn.execute(
+        "SELECT * FROM users WHERE email = ?", (email,)
+    ).fetchone()
+
+    if not user:
+        # Create new account with Google user info
+        conn.execute(
+            "INSERT INTO users (username, email, password_hash, full_name) VALUES (?, ?, ?, ?)",
+            (
+                username,
+                email,
+                generate_password_hash(os.urandom(12).hex()),  # random dummy password
+                full_name,
+            ),
+        )
+        conn.commit()
+        user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+
+    conn.close()
+
+    # Log the user in
+    session.clear()
+    session["user_id"] = user["id"]
+
+    flash("Logged in with Google successfully!", "success")
+    return redirect(url_for("dashboard"))
+
+
+# ---------------- Mail Setup ----------------
+app.config.update(
+    MAIL_SERVER="smtp.gmail.com",
+    MAIL_PORT=587,
+    MAIL_USE_TLS=True,
+    MAIL_USERNAME="your_email@gmail.com",   # change this
+    MAIL_PASSWORD="your_app_password",      # use app password, not Gmail password
+    MAIL_DEFAULT_SENDER="your_email@gmail.com"
+)
+mail = Mail(app)
+s = URLSafeTimedSerializer(app.secret_key)
+
+# ---------------- Forgot Password ----------------
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        conn = get_db_connection()
+        user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+        conn.close()
+        if not user:
+            flash("No account found with that email.", "danger")
+            return redirect(url_for('forgot_password'))
+
+        token = s.dumps(email, salt='password-reset-salt')
+        reset_url = url_for('reset_password', token=token, _external=True)
+
+        msg = Message("Password Reset Request", recipients=[email])
+        msg.body = f"Click the link to reset your password: {reset_url}\n\nIf you did not request this, ignore."
+        mail.send(msg)
+
+        flash("Password reset link sent to your email!", "info")
+        return redirect(url_for('login'))
+
+    return render_template('forgot_password.html')
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = s.loads(token, salt='password-reset-salt', max_age=3600)  # 1 hour
+    except (SignatureExpired, BadSignature):
+        flash("Reset link is invalid or expired.", "danger")
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        password = request.form.get('password')
+        hashed = generate_password_hash(password)
+        conn = get_db_connection()
+        conn.execute("UPDATE users SET password_hash = ? WHERE email = ?", (hashed, email))
+        conn.commit()
+        conn.close()
+        flash("Password reset successful! Please log in.", "success")
+        return redirect(url_for('login'))
+
+    return render_template('reset_password.html', token=token)
 
 @app.route('/')
 def index():
@@ -222,6 +345,367 @@ def update_profile():
         return redirect(url_for('dashboard'))
 
     return render_template('update_profile.html', user_data=g.user)
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not g.user or not g.user.get('is_admin'):
+            flash('Access denied. Admin privileges required.', 'danger')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Admin Dashboard
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    conn = get_db_connection()
+    
+    # Get statistics
+    total_users = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+    total_quizzes = conn.execute('SELECT COUNT(*) FROM quizzes').fetchone()[0]
+    total_attempts = conn.execute('SELECT COUNT(*) FROM quiz_results').fetchone()[0]
+    total_bookings = conn.execute('SELECT COUNT(*) FROM bookings').fetchone()[0]
+    pending_bookings = conn.execute('SELECT COUNT(*) FROM bookings WHERE status = "Pending"').fetchone()[0]
+    
+    # Recent activity
+    recent_attempts = conn.execute('''
+        SELECT u.username, q.name, r.score, r.total_questions, r.timestamp 
+        FROM quiz_results r 
+        JOIN users u ON r.user_id = u.id 
+        JOIN quizzes q ON r.quiz_id = q.id 
+        ORDER BY r.timestamp DESC 
+        LIMIT 5
+    ''').fetchall()
+    
+    # Performance by topic
+    topic_performance = conn.execute('''
+        SELECT q.name, 
+               COUNT(r.id) as attempt_count,
+               AVG(r.score * 100.0 / r.total_questions) as avg_score
+        FROM quiz_results r
+        JOIN quizzes q ON r.quiz_id = q.id
+        GROUP BY q.id
+        ORDER BY attempt_count DESC
+    ''').fetchall()
+    
+    conn.close()
+    
+    return render_template('admin/dashboard.html', 
+                         total_users=total_users,
+                         total_quizzes=total_quizzes,
+                         total_attempts=total_attempts,
+                         total_bookings=total_bookings,
+                         pending_bookings=pending_bookings,
+                         recent_attempts=recent_attempts,
+                         topic_performance=topic_performance,
+                         now=datetime.now())
+
+# Admin Users Management
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    conn = get_db_connection()
+    users = conn.execute('SELECT * FROM users ORDER BY id').fetchall()
+    conn.close()
+    
+    return render_template('admin/users.html', users=users)
+
+@app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
+@admin_required
+def admin_delete_user(user_id):
+    if user_id == g.user['id']:
+        flash('You cannot delete your own account.', 'warning')
+        return redirect(url_for('admin_users'))
+    
+    conn = get_db_connection()
+    conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+    
+    flash('User deleted successfully.', 'success')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/toggle_admin', methods=['POST'])
+@admin_required
+def admin_toggle_admin(user_id):
+    if user_id == g.user['id']:
+        flash('You cannot change your own admin status.', 'warning')
+        return redirect(url_for('admin_users'))
+    
+    conn = get_db_connection()
+    user = conn.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,)).fetchone()
+    new_status = 0 if user['is_admin'] else 1
+    conn.execute('UPDATE users SET is_admin = ? WHERE id = ?', (new_status, user_id))
+    conn.commit()
+    conn.close()
+    
+    status = "granted" if new_status else "revoked"
+    flash(f'Admin privileges {status} successfully.', 'success')
+    return redirect(url_for('admin_users'))
+
+# Admin Quizzes Management
+@app.route('/admin/quizzes')
+@admin_required
+def admin_quizzes():
+    conn = get_db_connection()
+    quizzes = conn.execute('SELECT * FROM quizzes ORDER BY id').fetchall()
+    conn.close()
+    
+    return render_template('admin/quizzes.html', quizzes=quizzes)
+
+@app.route('/admin/quiz/add', methods=['GET', 'POST'])
+@admin_required
+def admin_add_quiz():
+    if request.method == 'POST':
+        name = request.form['name']
+        slug = request.form['slug']
+        description = request.form['description']
+        
+        conn = get_db_connection()
+        conn.execute('INSERT INTO quizzes (name, slug, description) VALUES (?, ?, ?)', 
+                    (name, slug, description))
+        conn.commit()
+        conn.close()
+        
+        flash('Quiz added successfully.', 'success')
+        return redirect(url_for('admin_quizzes'))
+    
+    return render_template('admin/add_quiz.html')
+
+@app.route('/admin/quiz/<int:quiz_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_quiz(quiz_id):
+    conn = get_db_connection()
+    
+    if request.method == 'POST':
+        name = request.form['name']
+        slug = request.form['slug']
+        description = request.form['description']
+        
+        conn.execute('UPDATE quizzes SET name = ?, slug = ?, description = ? WHERE id = ?', 
+                    (name, slug, description, quiz_id))
+        conn.commit()
+        conn.close()
+        
+        flash('Quiz updated successfully.', 'success')
+        return redirect(url_for('admin_quizzes'))
+    
+    quiz = conn.execute('SELECT * FROM quizzes WHERE id = ?', (quiz_id,)).fetchone()
+    conn.close()
+    
+    if not quiz:
+        flash('Quiz not found.', 'danger')
+        return redirect(url_for('admin_quizzes'))
+    
+    return render_template('admin/edit_quiz.html', quiz=quiz)
+
+@app.route('/admin/quiz/<int:quiz_id>/delete', methods=['POST'])
+@admin_required
+def admin_delete_quiz(quiz_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM quizzes WHERE id = ?', (quiz_id,))
+    conn.commit()
+    conn.close()
+    
+    flash('Quiz deleted successfully.', 'success')
+    return redirect(url_for('admin_quizzes'))
+
+@app.route('/admin/quiz/<int:quiz_id>/questions')
+@admin_required
+def admin_quiz_questions(quiz_id):
+    conn = get_db_connection()
+    quiz = conn.execute('SELECT * FROM quizzes WHERE id = ?', (quiz_id,)).fetchone()
+    questions = conn.execute('''
+        SELECT q.*, GROUP_CONCAT(a.answer_text, '|') as answer_texts, 
+               GROUP_CONCAT(a.is_correct, '|') as is_corrects
+        FROM questions q
+        LEFT JOIN answers a ON q.id = a.question_id
+        WHERE q.quiz_id = ?
+        GROUP BY q.id
+        ORDER BY q.id
+    ''', (quiz_id,)).fetchall()
+    conn.close()
+    
+    if not quiz:
+        flash('Quiz not found.', 'danger')
+        return redirect(url_for('admin_quizzes'))
+    
+    return render_template('admin/quiz_questions.html', quiz=quiz, questions=questions)
+
+# Admin Bookings Management
+@app.route('/admin/bookings')
+@admin_required
+def admin_bookings():
+    status_filter = request.args.get('status', 'All')
+    
+    conn = get_db_connection()
+    
+    if status_filter == 'All':
+        bookings = conn.execute('''
+            SELECT b.*, u.username 
+            FROM bookings b 
+            LEFT JOIN users u ON b.user_id = u.id 
+            ORDER BY b.created_at DESC
+        ''').fetchall()
+    else:
+        bookings = conn.execute('''
+            SELECT b.*, u.username 
+            FROM bookings b 
+            LEFT JOIN users u ON b.user_id = u.id 
+            WHERE b.status = ?
+            ORDER BY b.created_at DESC
+        ''', (status_filter,)).fetchall()
+    
+    conn.close()
+    
+    return render_template('admin/bookings.html', bookings=bookings, status_filter=status_filter)
+
+@app.route('/admin/booking/<int:booking_id>/update_status', methods=['POST'])
+@admin_required
+def admin_update_booking_status(booking_id):
+    new_status = request.form['status']
+    
+    conn = get_db_connection()
+    conn.execute('UPDATE bookings SET status = ? WHERE id = ?', (new_status, booking_id))
+    conn.commit()
+    conn.close()
+    
+    flash('Booking status updated successfully.', 'success')
+    return redirect(url_for('admin_bookings'))
+
+@app.route('/admin/booking/<int:booking_id>/delete', methods=['POST'])
+@admin_required
+def admin_delete_booking(booking_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM bookings WHERE id = ?', (booking_id,))
+    conn.commit()
+    conn.close()
+    
+    flash('Booking deleted successfully.', 'success')
+    return redirect(url_for('admin_bookings'))
+
+# Admin Analytics
+@app.route('/admin/analytics')
+@admin_required
+def admin_analytics():
+    conn = get_db_connection()
+    
+    # User registration trend (last 30 days)
+    registration_trend = conn.execute('''
+        SELECT DATE(created_at) as date, COUNT(*) as count 
+        FROM users 
+        WHERE created_at >= date('now', '-30 days')
+        GROUP BY DATE(created_at) 
+        ORDER BY date
+    ''').fetchall()
+    
+    # Quiz performance by topic
+    topic_performance = conn.execute('''
+        SELECT q.name, 
+               COUNT(r.id) as attempt_count,
+               AVG(CAST(r.score AS FLOAT) * 100.0 / r.total_questions) as avg_score
+        FROM quiz_results r
+        JOIN quizzes q ON r.quiz_id = q.id
+        WHERE r.total_questions > 0
+        GROUP BY q.id, q.name
+        ORDER BY attempt_count DESC
+    ''').fetchall()
+    
+    # User activity
+    active_users = conn.execute('''
+        SELECT u.username, 
+               COUNT(r.id) as quiz_count, 
+               MAX(r.timestamp) as last_activity,
+               AVG(CAST(r.score AS FLOAT) * 100.0 / r.total_questions) as avg_score
+        FROM users u
+        JOIN quiz_results r ON u.id = r.user_id
+        WHERE r.total_questions > 0
+        GROUP BY u.id, u.username
+        HAVING COUNT(r.id) > 0
+        ORDER BY quiz_count DESC
+        LIMIT 10
+    ''').fetchall()
+    
+    conn.close()
+    
+    return render_template('admin/analytics.html', 
+                         registration_trend=registration_trend,
+                         topic_performance=topic_performance,
+                         active_users=active_users,
+                         now=datetime.now())
+
+# Admin Login Route (separate from regular login)
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if g.user and g.user.get('is_admin'):
+        return redirect(url_for('admin_dashboard'))
+    
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        conn = get_db_connection()
+        user = conn.execute('SELECT * FROM users WHERE email = ? AND is_admin = 1', (email,)).fetchone()
+        conn.close()
+        
+        if user and check_password_hash(user['password_hash'], password):
+            session.clear()
+            session['user_id'] = user['id']
+            flash('Admin login successful!', 'success')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Invalid admin credentials or insufficient privileges.', 'danger')
+    
+    return render_template('admin/login.html')
+
+# Admin Logout
+@app.route('/admin/logout')
+def admin_logout():
+    session.clear()
+    flash('You have been logged out from admin panel.', 'info')
+    return redirect(url_for('index'))
+
+# Update book trainer route to save bookings
+@app.route('/submit-booking', methods=['POST'])
+def submit_booking():
+    if not g.user:
+        flash('You need to be logged in to book a trainer.', 'warning')
+        return redirect(url_for('login'))
+    
+    organization_name = request.form['organization_name']
+    contact_person = request.form['contact_person']
+    email = request.form['email']
+    phone = request.form['phone']
+    participants_count = request.form.get('participants_count')
+    preferred_date = request.form.get('preferred_date')
+    training_topic = request.form.get('training_topic')
+    message = request.form.get('message')
+    
+    conn = get_db_connection()
+    conn.execute('''
+        INSERT INTO bookings (user_id, organization_name, contact_person, email, phone, 
+                             participants_count, preferred_date, training_topic, message)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (g.user['id'], organization_name, contact_person, email, phone, 
+          participants_count, preferred_date, training_topic, message))
+    conn.commit()
+    conn.close()
+    
+    flash('Your training request has been submitted successfully! We will contact you soon.', 'success')
+    return redirect(url_for('book_trainer'))
+
+# Update your before_request to handle admin status
+@app.before_request
+def load_logged_in_user():
+    user_id = session.get('user_id')
+    if user_id is None:
+        g.user = None
+    else:
+        conn = get_db_connection()
+        g.user = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+        conn.close()
+        if g.user is None:
+            session.clear()
 
 if __name__ == '__main__':
     app.run(debug=True)

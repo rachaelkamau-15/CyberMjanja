@@ -1,0 +1,181 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Analytics - CyberMjanja Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Analytics & Reports</h2>
+    <span class="badge bg-info">Data as of {{ now.strftime('%Y-%m-%d') }}</span>
+</div>
+
+<div class="row">
+    <!-- User Registration Trend -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-line"></i> User Registration Trend (Last 30 Days)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="registrationChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Performance -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-bar"></i> Quiz Performance by Topic</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="performanceChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Active Users -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-user-check"></i> Most Active Users</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Quizzes Taken</th>
+                                <th>Last Activity</th>
+                                <th>Average Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in active_users %}
+                            <tr>
+                                <td>{{ user.username }}</td>
+                                <td>{{ user.quiz_count }}</td>
+                                <td>{{ user.last_activity.strftime('%Y-%m-%d') if user.last_activity else 'N/A' }}</td>
+                                <td>
+                                    <span class="badge {% if user.avg_score >= 70 %}bg-success{% elif user.avg_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}">
+                                        {{ "%.1f"|format(user.avg_score) }}%
+                                    </span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center">No activity data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // User Registration Chart
+    const registrationCtx = document.getElementById('registrationChart').getContext('2d');
+    const registrationChart = new Chart(registrationCtx, {
+        type: 'line',
+        data: {
+            labels: [
+                {% for trend in registration_trend %}
+                    '{{ trend.date }}'{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'User Registrations',
+                data: [
+                    {% for trend in registration_trend %}
+                        {{ trend.count }}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+
+    // Quiz Performance Chart
+    const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+    const performanceChart = new Chart(performanceCtx, {
+        type: 'bar',
+        data: {
+            labels: [
+                {% for topic in topic_performance %}
+                    '{{ topic.name }}'{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Average Score (%)',
+                data: [
+                    {% for topic in topic_performance %}
+                        {{ topic.avg_score }}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}
