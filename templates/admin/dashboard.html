@@ -85,7 +85,19 @@
                                         {{ attempt.score }}/{{ attempt.total_questions }}
                                     </span>
                                 </td>
-                                <td>{{ attempt.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if attempt.timestamp %}
+                                        {% if attempt.timestamp is string %}
+                                            {# If timestamp is a string, just display it #}
+                                            {{ attempt.timestamp }}
+                                        {% else %}
+                                            {# If timestamp is a datetime object, format it #}
+                                            {{ attempt.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                        {% endif %}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% else %}
                             <tr>

@@ -7,6 +7,7 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from datetime import datetime
 from functools import wraps
 
+
 app = Flask(__name__)
 app.secret_key = 'your_super_secret_key_change_this'
 DATABASE = 'database.db'
@@ -280,7 +281,12 @@ def review_quiz_result(result_id):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if g.user: return redirect(url_for('dashboard'))
+    if g.user: # If already logged in, redirect based on admin status
+        if g.user.get('role') == 'admin': # Assuming 'role' is a column in g.user
+            return redirect(url_for('admin_dashboard'))
+        else:
+            return redirect(url_for('dashboard'))
+
     if request.method == 'POST':
         email, password = request.form['email'], request.form['password']
         conn = get_db_connection()
@@ -290,7 +296,11 @@ def login():
             session.clear()
             session['user_id'] = user['id']
             flash('You have been successfully logged in!', 'success')
-            return redirect(url_for('dashboard'))
+            # --- MODIFIED REDIRECTION ---
+            if user['role'] == 'admin': 
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('dashboard'))
         else:
             flash('Invalid email or password. Please try again.', 'danger')
     return render_template('login.html')
@@ -348,7 +358,7 @@ def update_profile():
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not g.user or not g.user.get('is_admin'):
+        if not g.user or g.user['role'] != 'admin':
             flash('Access denied. Admin privileges required.', 'danger')
             return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
@@ -364,8 +374,8 @@ def admin_dashboard():
     total_users = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
     total_quizzes = conn.execute('SELECT COUNT(*) FROM quizzes').fetchone()[0]
     total_attempts = conn.execute('SELECT COUNT(*) FROM quiz_results').fetchone()[0]
-    total_bookings = conn.execute('SELECT COUNT(*) FROM bookings').fetchone()[0]
-    pending_bookings = conn.execute('SELECT COUNT(*) FROM bookings WHERE status = "Pending"').fetchone()[0]
+    # total_bookings = conn.execute('SELECT COUNT(*) FROM bookings').fetchone()[0]
+    # pending_bookings = conn.execute('SELECT COUNT(*) FROM bookings WHERE status = "Pending"').fetchone()[0]
     
     # Recent activity
     recent_attempts = conn.execute('''
@@ -394,8 +404,8 @@ def admin_dashboard():
                          total_users=total_users,
                          total_quizzes=total_quizzes,
                          total_attempts=total_attempts,
-                         total_bookings=total_bookings,
-                         pending_bookings=pending_bookings,
+                        #  total_bookings=total_bookings,
+                        #  pending_bookings=pending_bookings,
                          recent_attempts=recent_attempts,
                          topic_performance=topic_performance,
                          now=datetime.now())
