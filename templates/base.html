@@ -173,5 +173,18 @@
 
     <!-- Placeholder for page-specific scripts -->
     {% block scripts %}{% endblock %}
+    {% if user and user.is_admin %}
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+        <i class="fas fa-cog"></i> Admin Panel
+    </a>
+</li>
+{% else %}
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('admin_login') }}">
+        <i class="fas fa-lock"></i> Admin Login
+    </a>
+</li>
+{% endif %}
 
 </body>

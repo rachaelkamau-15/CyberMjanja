@@ -15,7 +15,8 @@ CREATE TABLE users (
     full_name TEXT,          -- Added for user profile
     country TEXT,            -- Added for user profile
     organization TEXT,       -- Added for user profile
-    job_title TEXT           -- Added for user profile
+    job_title TEXT,          -- Added for user profile
+    is_admin BOOLEAN DEFAULT 0
 );
 
 -- Create the quizzes table.
@@ -66,3 +67,23 @@ CREATE TABLE user_answers (
     FOREIGN KEY (question_id) REFERENCES questions (id),
     FOREIGN KEY (selected_answer_id) REFERENCES answers (id)
 );
+
+CREATE TABLE IF NOT EXISTS bookings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    organization_name TEXT NOT NULL,
+    contact_person TEXT NOT NULL,
+    email TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    participants_count INTEGER,
+    preferred_date TEXT,
+    training_topic TEXT,
+    message TEXT,
+    status TEXT DEFAULT 'Pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id)
+);
+
+-- Create or update the admin user
+INSERT OR REPLACE INTO users (username, email, password_hash, is_admin, full_name) 
+VALUES ('cybermjanja', 'cybermjanjez@gmail.com', '$2b$12$L6lUJ1WQ7k3V8oY5zT9K0.ErJ8KvX7WmZ2nY5cV3bR7tY6vX9wC1d', 1, 'Cyber Mjanja Admin');

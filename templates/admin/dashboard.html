@@ -1,0 +1,184 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Admin Dashboard - CyberMjanja{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Admin Dashboard</h2>
+    <span class="badge bg-info">Last updated: {{ now.strftime('%Y-%m-%d %H:%M') }}</span>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-2 col-6 mb-3">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="fas fa-users"></i></h5>
+                <h3 class="card-text">{{ total_users }}</h3>
+                <p class="card-text">Total Users</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-3">
+        <div class="card stat-card bg-success text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="fas fa-question-circle"></i></h5>
+                <h3 class="card-text">{{ total_quizzes }}</h3>
+                <p class="card-text">Quizzes</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-3">
+        <div class="card stat-card bg-info text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="fas fa-chart-bar"></i></h5>
+                <h3 class="card-text">{{ total_attempts }}</h3>
+                <p class="card-text">Quiz Attempts</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-3">
+        <div class="card stat-card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="fas fa-calendar-check"></i></h5>
+                <h3 class="card-text">{{ total_bookings }}</h3>
+                <p class="card-text">Total Bookings</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6 mb-3">
+        <div class="card stat-card bg-danger text-white">
+            <div class="card-body text-center">
+                <h5 class="card-title"><i class="fas fa-clock"></i></h5>
+                <h3 class="card-text">{{ pending_bookings }}</h3>
+                <p class="card-text">Pending Bookings</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Activity -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-history"></i> Recent Quiz Attempts</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Quiz</th>
+                                <th>Score</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attempt in recent_attempts %}
+                            <tr>
+                                <td>{{ attempt.username }}</td>
+                                <td>{{ attempt.name }}</td>
+                                <td>
+                                    <span class="badge {% if attempt.score/attempt.total_questions >= 0.7 %}bg-success{% elif attempt.score/attempt.total_questions >= 0.5 %}bg-warning{% else %}bg-danger{% endif %}">
+                                        {{ attempt.score }}/{{ attempt.total_questions }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if attempt.timestamp %}
+                                        {% if attempt.timestamp is string %}
+                                            {# If timestamp is a string, just display it #}
+                                            {{ attempt.timestamp }}
+                                        {% else %}
+                                            {# If timestamp is a datetime object, format it #}
+                                            {{ attempt.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                        {% endif %}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center">No recent attempts</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Topic Performance -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-pie"></i> Topic Performance</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Topic</th>
+                                <th>Attempts</th>
+                                <th>Avg Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for topic in topic_performance %}
+                            <tr>
+                                <td>{{ topic.name }}</td>
+                                <td>{{ topic.attempt_count }}</td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar {% if topic.avg_score >= 70 %}bg-success{% elif topic.avg_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                             role="progressbar" style="width: {{ topic.avg_score }}%;" 
+                                             aria-valuenow="{{ topic.avg_score }}" aria-valuemin="0" aria-valuemax="100">
+                                            {{ "%.1f"|format(topic.avg_score) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center">No performance data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Quick Actions -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-bolt"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2 d-md-flex">
+                    <a href="{{ url_for('admin_users') }}" class="btn btn-primary me-md-2">
+                        <i class="fas fa-users"></i> Manage Users
+                    </a>
+                    <a href="{{ url_for('admin_quizzes') }}" class="btn btn-success me-md-2">
+                        <i class="fas fa-question-circle"></i> Manage Quizzes
+                    </a>
+                    <a href="{{ url_for('admin_bookings') }}" class="btn btn-warning me-md-2">
+                        <i class="fas fa-calendar-check"></i> View Bookings
+                    </a>
+                    <a href="{{ url_for('admin_analytics') }}" class="btn btn-info">
+                        <i class="fas fa-chart-line"></i> View Analytics
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

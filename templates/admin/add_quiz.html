@@ -1,0 +1,44 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Add New Quiz - CyberMjanja Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Add New Quiz</h2>
+    <a href="{{ url_for('admin_quizzes') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Quizzes
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="card-title mb-0">Quiz Details</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('admin_add_quiz') }}">
+            <div class="mb-3">
+                <label for="name" class="form-label">Quiz Name *</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="slug" class="form-label">Slug *</label>
+                <input type="text" class="form-control" id="slug" name="slug" required>
+                <div class="form-text">URL-friendly identifier (e.g., "social-engineering")</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex">
+                <button type="submit" class="btn btn-success me-md-2">
+                    <i class="fas fa-save"></i> Save Quiz
+                </button>
+                <a href="{{ url_for('admin_quizzes') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
