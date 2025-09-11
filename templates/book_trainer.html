@@ -53,26 +53,64 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Form Section -->
             <div class="row g-5 justify-content-center">
-                <div class="col-lg-6 wow fadeIn" data-wow-delay=".5s">
+                <div class="col-lg-10 wow fadeIn" data-wow-delay=".5s">
                     <div class="p-5 rounded contact-form">
-                        <div class="mb-4">
-                            <input type="text" class="form-control border-0 py-3" placeholder="Your Name">
+                        <div class="row g-4">
+                            {# Left Column: Personal/Org Details #}
+                            <div class="col-md-6">
+                                <div class="mb-4">
+                                    <input type="text" class="form-control border-0 py-3" placeholder="Your Name">
+                                </div>
+                                <div class="mb-4">
+                                    <input type="email" class="form-control border-0 py-3" placeholder="Your Email">
+                                </div>
+                                <div class="mb-4">
+                                    <input type="text" class="form-control border-0 py-3" placeholder="Organization Name">
+                                </div>
+                                <div class="mb-4">
+                                    <input type="tel" class="form-control border-0 py-3" placeholder="Phone Number">
+                                </div>
+                            </div>
+
+                            {# Right Column: Dates and Topic #}
+                            <div class="col-md-6">
+                                <div class="mb-4">
+                                    <label for="startDate" class="form-label">Start Training Date:</label>
+                                    <input type="date" class="form-control border-0 py-3" id="startDate" name="startDate">
+                                </div>
+                                <div class="mb-4">
+                                    <label for="endDate" class="form-label">End Training Date:</label>
+                                    <input type="date" class="form-control border-0 py-3" id="endDate" name="endDate">
+                                </div>
+                                <div class="mb-4">
+                                    <select class="form-select border-0 py-3">
+                                        <option selected>Select Topic</option>
+                                        <option value="cybersecurity_awareness">Cybersecurity Awareness</option>
+                                        <option value="data_privacy">Data Privacy</option>
+                                        <option value="network_security">Network Security</option>
+                                        <option value="web_security">Web Security</option>
+                                        <option value="incident_response">Incident Response</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mb-4">
-                            <input type="email" class="form-control border-0 py-3" placeholder="Your Email">
-                        </div>
-                        <div class="mb-4">
-                            <textarea class="w-100 form-control border-0 py-3" rows="6" cols="10" placeholder="Message"></textarea>
-                        </div>
-                        <div class="text-start">
+
+                        {# Centered Book Now Button #}
+                        <div class="text-center mt-4">
                             <button class="btn bg-primary text-white py-3 px-5" type="button">Book Now</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div> 
+    </div>
 </div>
 <!-- Book End -->
+
+<script src="{{ url_for('static', filename='js/booking.js') }}"></script>
+
 {% endblock %}
